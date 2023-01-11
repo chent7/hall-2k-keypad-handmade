@@ -1,6 +1,6 @@
 # hall-keypad
 
-Code for this video here:
+Build:
 https://www.youtube.com/watch?v=EjJIpGJ4OQg
 
 Updates:
