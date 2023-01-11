@@ -1,4 +1,4 @@
-# hall-keypad
+# Handmade 2K Pro Micro 49E Linear Hall Effect Keypad
 
 Build:
 https://www.youtube.com/watch?v=EjJIpGJ4OQg
