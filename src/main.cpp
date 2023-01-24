@@ -1,76 +1,79 @@
+#include <main.h>
 #include <Arduino.h>
 #include "HID-Project.h"
 
-struct keyData {
-  int min;
-  int max;
-  int trig;
-  int val;
-  int ref;
-  bool pressed;
-};
-
-#define CUSHION 10
-
-#define KEYS_NUM 2
-#define RAPID_TRIGGER_DISTANCE 0.9 // in mm
-#define BOTTOM_OUT_DISTANCE 4 // in mm
-
-keyData keys[KEYS_NUM];
-const static uint8_t keyPins[KEYS_NUM] = { A1, A0 };
-const static char keyChars[KEYS_NUM] = { 'z', 'x' };
-
 void pressKey(int n) {
-  Keyboard.press(keyChars[n]);
+  Keyboard.press(keyCodes[n]);
   keys[n].pressed = true;
 }
 
 void releaseKey(int n) {
-  Keyboard.release(keyChars[n]);
+  Keyboard.release(keyCodes[n]);
   keys[n].pressed = false;
+}
+
+void convertDistance(int n) {
+  keys[n].trigger = ((keys[n].max - keys[n].min) / BOTTOM_OUT_DISTANCE) * TRIGGER;
+  keys[n].release = ((keys[n].max - keys[n].min) / BOTTOM_OUT_DISTANCE) * RELEASE;
 }
 
 void initKey(int n) {
   pinMode(keyPins[n],INPUT);
-  keys[n].val = analogRead(keyPins[n]);
-  keys[n].ref = keys[n].val;
-  keys[n].min = keys[n].val - CUSHION;
-  keys[n].max = keys[n].val + CUSHION;
-  keys[n].trig = RAPID_TRIGGER_DISTANCE * CUSHION;
+  keys[n].value = analogRead(keyPins[n]);
+  keys[n].reference = keys[n].value;
+
+  /* Idea is the more you use the key the more accurate the values are */
+  keys[n].min = keys[n].value - CUSHION;
+  keys[n].max = keys[n].value + CUSHION;
+
+  /* These values are meaningless, it'll be replaced when min/max changes */
+  keys[n].trigger = TRIGGER * CUSHION;
+  keys[n].release = RELEASE * CUSHION;
 }
 
 void balanceKey(int n) {
-  if (keys[n].val < keys[n].min) {
-    keys[n].min = keys[n].val;
-    keys[n].trig = ((keys[n].max - keys[n].min) / BOTTOM_OUT_DISTANCE) * RAPID_TRIGGER_DISTANCE;
-  } else if (keys[n].val > keys[n].max) {
-    keys[n].max = keys[n].val;
-    keys[n].trig = ((keys[n].max - keys[n].min) / BOTTOM_OUT_DISTANCE) * RAPID_TRIGGER_DISTANCE;
+  /* Min (rest) value will only be updated when key is not being pressed */
+  if (!keys[n].pressed && (keys[n].value < keys[n].min)) {
+    keys[n].min = keys[n].value;
+    convertDistance(n);
+  } else if (keys[n].pressed && (keys[n].value > keys[n].max)) {
+    /* Same with max value */
+    keys[n].max = keys[n].value;
+    convertDistance(n);
   }
 }
 
 void processKey(int n) {
-  if (keys[n].val > keys[n].ref + keys[n].trig && !keys[n].pressed) {
-    pressKey(n);
-  } else if (keys[n].val <= keys[n].ref - keys[n].trig && keys[n].pressed) {
-    releaseKey(n);
-  }
+  /* Optimization: check if key is triggered first */
+  if (!keys[n].pressed) {
+    if (keys[n].value > keys[n].reference + keys[n].trigger) {
+      pressKey(n);
+    }
 
-  if ((keys[n].pressed && keys[n].val > keys[n].ref) || \
-      (!keys[n].pressed && keys[n].val < keys[n].ref)) {
-    keys[n].ref = keys[n].val;
+    if (keys[n].value < keys[n].reference) {
+      keys[n].reference = keys[n].value;
+    }
+  } else if (keys[n].pressed) {
+    if (keys[n].value <= keys[n].reference - keys[n].release) {
+      releaseKey(n);
+    }
+
+    if (keys[n].value > keys[n].reference) {
+      keys[n].reference = keys[n].value;
+    }
   }
 }
 
 void runKey(int n) {
-  keys[n].val = analogRead(keyPins[n]);
+  keys[n].value = analogRead(keyPins[n]);
   balanceKey(n);
   processKey(n);
 }
 
 void setup() {
-  initKey(0);
-  initKey(1);
+  for (int i = 0; i < KEYS; i++) {
+    initKey(i);
+  }
   Keyboard.begin();
 }
 
