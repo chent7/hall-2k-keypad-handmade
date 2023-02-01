@@ -53,7 +53,7 @@ void processKey(int n) {
     if (keys[n].value < keys[n].reference) {
       keys[n].reference = keys[n].value;
     }
-  } else if (keys[n].pressed) {
+  } else {
     if (keys[n].value <= keys[n].reference - keys[n].release) {
       releaseKey(n);
     }
