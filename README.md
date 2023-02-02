@@ -4,7 +4,7 @@
 
 ## Announcement:
 Please use the 44E instead of 49E for reasons explained in the pinned YouTube comment :) \
-Use a compass to determine the south pole of the magnet (so the red needle points to the magnet \
+Use a compass to determine the south pole of the magnet (so the red needle points to the magnet) \
 And have it face the sensor
 
 ## Build:
